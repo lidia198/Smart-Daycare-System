@@ -6,6 +6,7 @@ const homeRoutes = require("./routes/homeRoutes");
 const authRoutes = require("./routes/authRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const parentRoutes = require('./routes/parentRoutes');
+const caregiverRoutes = require('./routes/caregiverRoutes');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use("/", homeRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
 app.use('/api/parent', parentRoutes);
+app.use('/api/caregiver', caregiverRoutes);
 app.get("/api/profile", verifyToken, (req, res) => {
     res.json({
         message: "Welcome!",
