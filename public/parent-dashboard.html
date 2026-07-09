@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Parent Dashboard - Smart Daycare</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.dash-wrap { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+.dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.dash-header h1 { color: #2c7a7b; }
+.logout-btn { background: #a52a2a; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; }
+.child-card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.child-card h2 { color: #2c7a7b; margin-bottom: 10px; }
+.tag { display: inline-block; background: #eaf6f6; color: #2c7a7b; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; margin-right: 8px; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+th { color: #2c7a7b; }
+.section-title { margin: 30px 0 10px; color: #2c7a7b; font-size: 1.2rem; }
+.announcement { background: #fff8e6; border-left: 4px solid #f0a500; padding: 12px 16px; margin-bottom: 10px; border-radius: 6px; }
+.empty { color: #888; font-style: italic; }
+</style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">🧸 Smart Daycare</div>
+    <div class="links">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <span id="userName" style="color:white; margin-left:20px;"></span>
+    </div>
+</nav>
+
+<div class="dash-wrap">
+    <div class="dash-header">
+        <h1>My Children</h1>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="childrenContainer"><p class="empty">Loading...</p></div>
+
+    <h3 class="section-title">📢 Announcements</h3>
+    <div id="announcementsContainer"></div>
+</div>
+
+<script src="script.js"></script>
+<script>
+const API_BASE = "http://localhost:3000/api";
+
+async function loadDashboard() {
+    const parentId = localStorage.getItem("userId");
+    const fullName = localStorage.getItem("fullName");
+    document.getElementById("userName").textContent = fullName ? `Hi, ${fullName}` : "";
+
+    if (!parentId) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/parent/dashboard/${parentId}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+            document.getElementById("childrenContainer").innerHTML = `<p class="empty">${data.message}</p>`;
+            return;
+        }
+
+        renderChildren(data);
+        renderAnnouncements(data.announcements);
+    } catch (err) {
+        document.getElementById("childrenContainer").innerHTML = `<p class="empty">Could not load dashboard. Is the server running?</p>`;
+    }
+}
+
+function renderChildren(data) {
+    const container = document.getElementById("childrenContainer");
+    if (!data.children || data.children.length === 0) {
+        container.innerHTML = `<p class="empty">No children found.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.children.map(child => {
+        const childReports = data.daily_reports.filter(r => r.child_id === child.id);
+        const childAttendance = data.attendance.filter(a => a.child_id === child.id);
+
+        const reportsHtml = childReports.length
+            ? `<table>
+                <tr><th>Date</th><th>Mood</th><th>Meals</th><th>Nap</th><th>Comment</th></tr>
+                ${childReports.map(r => `
+                    <tr>
+                        <td>${new Date(r.report_date).toLocaleDateString()}</td>
+                        <td>${r.mood || '-'}</td>
+                        <td>${r.meals || '-'}</td>
+                        <td>${r.nap_duration || '-'}</td>
+                        <td>${r.teacher_comment || '-'}</td>
+                    </tr>`).join('')}
+               </table>`
+            : `<p class="empty">No daily reports yet.</p>`;
+
+        const attendanceHtml = childAttendance.length
+            ? `<table>
+                <tr><th>Date</th><th>Check-in</th><th>Check-out</th><th>Status</th></tr>
+                ${childAttendance.map(a => `
+                    <tr>
+                        <td>${new Date(a.date).toLocaleDateString()}</td>
+                        <td>${a.check_in || '-'}</td>
+                        <td>${a.check_out || '-'}</td>
+                        <td>${a.status}</td>
+                    </tr>`).join('')}
+               </table>`
+            : `<p class="empty">No attendance records yet.</p>`;
+
+        return `
+            <div class="child-card">
+                <h2>${child.full_name}</h2>
+                <span class="tag">${child.gender}</span>
+                <span class="tag">Allergies: ${child.allergies}</span>
+                <h4 style="margin-top:15px;">📋 Daily Reports</h4>
+                ${reportsHtml}
+                <h4 style="margin-top:15px;">✅ Attendance</h4>
+                ${attendanceHtml}
+            </div>
+        `;
+    }).join('');
+}
+
+function renderAnnouncements(announcements) {
+    const container = document.getElementById("announcementsContainer");
+    if (!announcements || announcements.length === 0) {
+        container.innerHTML = `<p class="empty">No announcements.</p>`;
+        return;
+    }
+    container.innerHTML = announcements.map(a => `
+        <div class="announcement">
+            <strong>${a.title}</strong>
+            <p>${a.message}</p>
+        </div>
+    `).join('');
+}
+
+function logout() {
+    localStorage.clear();
+    window.location.href = "login.html";
+}
+
+loadDashboard();
+</script>
+
+</body>
+</html>

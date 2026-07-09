@@ -1,6 +1,5 @@
 const API_BASE = "http://localhost:3000/api";
 
-// REGISTER FORM
 const registerForm = document.getElementById("registerForm");
 if (registerForm) {
     registerForm.addEventListener("submit", async (e) => {
@@ -61,6 +60,9 @@ if (loginForm) {
             if (response.ok) {
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("role", data.user.role);
+                localStorage.setItem("userId", data.user.id);
+                localStorage.setItem("fullName", data.user.full_name);
+
                 messageEl.textContent = "Login successful! Redirecting...";
                 messageEl.className = "message success";
 
@@ -69,6 +71,8 @@ if (loginForm) {
                         window.location.href = "parent-dashboard.html";
                     } else if (data.user.role === "caregiver") {
                         window.location.href = "caregiver-dashboard.html";
+                    } else if (data.user.role === "admin") {
+                        window.location.href = "admin-dashboard.html";
                     } else {
                         window.location.href = "index.html";
                     }

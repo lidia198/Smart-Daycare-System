@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Caregiver Dashboard - Smart Daycare</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.dash-wrap { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+.dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.dash-header h1 { color: #2c7a7b; }
+.logout-btn { background: #a52a2a; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; }
+.child-card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.child-card h2 { color: #2c7a7b; margin-bottom: 10px; }
+.tag { display: inline-block; background: #eaf6f6; color: #2c7a7b; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; margin-right: 8px; }
+.btn-small { background: #2c7a7b; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; margin-top: 10px; }
+.empty { color: #888; font-style: italic; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+th { color: #2c7a7b; }
+</style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">🧸 Smart Daycare</div>
+    <div class="links">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <span id="userName" style="color:white; margin-left:20px;"></span>
+    </div>
+</nav>
+
+<div class="dash-wrap">
+    <div class="dash-header">
+        <h1>My Assigned Children</h1>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div id="childrenContainer"><p class="empty">Loading...</p></div>
+</div>
+
+<script src="script.js"></script>
+<script>
+const API_BASE = "http://localhost:3000/api";
+const caregiverId = localStorage.getItem("userId");
+
+async function loadDashboard() {
+    document.getElementById("userName").textContent = localStorage.getItem("fullName")
+        ? `Hi, ${localStorage.getItem("fullName")}` : "";
+
+    if (!caregiverId) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/caregiver/dashboard/${caregiverId}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+            document.getElementById("childrenContainer").innerHTML = `<p class="empty">${data.message}</p>`;
+            return;
+        }
+
+        renderChildren(data);
+    } catch (err) {
+        document.getElementById("childrenContainer").innerHTML = `<p class="empty">Could not load dashboard.</p>`;
+    }
+}
+
+function renderChildren(data) {
+    const container = document.getElementById("childrenContainer");
+    if (!data.assigned_children || data.assigned_children.length === 0) {
+        container.innerHTML = `<p class="empty">No children assigned.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.assigned_children.map(child => {
+        const att = data.today_attendance.find(a => a.child_id === child.id);
+        return `
+            <div class="child-card">
+                <h2>${child.full_name}</h2>
+                <span class="tag">${child.classroom}</span>
+                <span class="tag">Allergies: ${child.allergies}</span>
+                <p style="margin-top:10px;">Today's attendance: ${att ? att.status : 'Not marked yet'}</p>
+                <button class="btn-small" onclick="markAttendance(${child.id})">Mark Present Today</button>
+            </div>
+        `;
+    }).join('');
+}
+
+async function markAttendance(childId) {
+    const today = new Date().toISOString().split('T')[0];
+    const now = new Date().toTimeString().split(' ')[0];
+
+    try {
+        const res = await fetch(`${API_BASE}/caregiver/attendance`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                child_id: childId,
+                date: today,
+                check_in: now,
+                check_out: null,
+                status: "present",
+                recorded_by: caregiverId
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert("Attendance marked!");
+            loadDashboard();
+        } else {
+            alert(data.message);
+        }
+    } catch (err) {
+        alert("Failed to mark attendance.");
+    }
+}
+
+function logout() {
+    localStorage.clear();
+    window.location.href = "login.html";
+}
+
+loadDashboard();
+</script>
+
+</body>
+</html>
