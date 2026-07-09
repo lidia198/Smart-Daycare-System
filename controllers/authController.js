@@ -1,9 +1,8 @@
 const bcrypt = require("bcrypt");
-const userModel = require("../model/userModel");
-
+const jwt = require("jsonwebtoken");
+const userModel = require("../models/userModel");
 async function register(req, res) {
     try {
-
         const {
             full_name,
             email,
@@ -12,7 +11,7 @@ async function register(req, res) {
             role
         } = req.body;
 
-        // Check required fields
+        // Validate required fields
         if (!full_name || !email || !password || !phone || !role) {
             return res.status(400).json({
                 message: "All fields are required."
@@ -29,7 +28,6 @@ async function register(req, res) {
             });
         }
 
-        // Check if email already exists
         userModel.findUserByEmail(email, async (err, results) => {
 
             if (err) {
@@ -45,17 +43,17 @@ async function register(req, res) {
             }
 
             // Hash password
-            const password_hash = await bcrypt.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(password, 10);
 
             const user = {
                 full_name,
                 email,
-                password_hash,
+                password: hashedPassword,
                 phone,
                 role
             };
 
-            // Save user
+        
             userModel.createUser(user, (err) => {
 
                 if (err) {
@@ -80,20 +78,22 @@ async function register(req, res) {
 
     }
 }
+
+// =====================
+// Login User
+// =====================
 async function login(req, res) {
 
     try {
 
         const { email, password } = req.body;
 
-        // Check required fields
         if (!email || !password) {
             return res.status(400).json({
                 message: "Email and password are required."
             });
         }
 
-        // Find user by email
         userModel.findUserByEmail(email, async (err, results) => {
 
             if (err) {
@@ -110,11 +110,8 @@ async function login(req, res) {
 
             const user = results[0];
 
-            // Compare password
-            const isMatch = await bcrypt.compare(
-                password,
-                user.password_hash
-            );
+            // Compare passwords
+            const isMatch = await bcrypt.compare(password, user.password);
 
             if (!isMatch) {
                 return res.status(401).json({
@@ -122,7 +119,7 @@ async function login(req, res) {
                 });
             }
 
-            // Generate JWT Token
+            // Generate JWT
             const token = jwt.sign(
                 {
                     id: user.id,
@@ -137,7 +134,7 @@ async function login(req, res) {
 
             res.status(200).json({
                 message: "Login successful.",
-                token: token,
+                token,
                 user: {
                     id: user.id,
                     full_name: user.full_name,
@@ -155,7 +152,6 @@ async function login(req, res) {
         });
 
     }
-
 }
 
 module.exports = {

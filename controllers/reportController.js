@@ -1,4 +1,4 @@
-const reportModel = require("../model/reportModel");
+const reportModel = require("../models/reportModel");
 
 function createReport(req, res) {
 

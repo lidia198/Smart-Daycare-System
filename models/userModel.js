@@ -7,10 +7,10 @@ function findUserByEmail(email, callback) {
     db.query(sql, [email], callback);
 }
 
-// Create new user
+// Create a new user
 function createUser(user, callback) {
     const sql = `
-        INSERT INTO users (full_name, email, password_hash, phone, role)
+        INSERT INTO users (full_name, email, password, phone, role)
         VALUES (?, ?, ?, ?, ?)
     `;
 
@@ -19,7 +19,7 @@ function createUser(user, callback) {
         [
             user.full_name,
             user.email,
-            user.password_hash,
+            user.password,
             user.phone,
             user.role
         ],
