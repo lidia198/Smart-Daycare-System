@@ -11,14 +11,12 @@ async function register(req, res) {
             role
         } = req.body;
 
-        // Validate required fields
         if (!full_name || !email || !password || !phone || !role) {
             return res.status(400).json({
                 message: "All fields are required."
             });
         }
 
-        // Password policy
         const passwordRegex =
             /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.#_-])[A-Za-z\d@$!%*?&.#_-]{8,}$/;
 
@@ -42,7 +40,6 @@ async function register(req, res) {
                 });
             }
 
-            // Hash password
             const hashedPassword = await bcrypt.hash(password, 10);
 
             const user = {
@@ -79,9 +76,6 @@ async function register(req, res) {
     }
 }
 
-// =====================
-// Login User
-// =====================
 async function login(req, res) {
 
     try {
@@ -110,7 +104,7 @@ async function login(req, res) {
 
             const user = results[0];
 
-            // Compare passwords
+        
             const isMatch = await bcrypt.compare(password, user.password);
 
             if (!isMatch) {
@@ -119,7 +113,6 @@ async function login(req, res) {
                 });
             }
 
-            // Generate JWT
             const token = jwt.sign(
                 {
                     id: user.id,

@@ -3,7 +3,6 @@ const db = require('../config/db');
 exports.getDashboard = (req, res) => {
     const { caregiverId } = req.params;
 
-    // Get all children assigned to this caregiver via enrollment
     db.query(
         `SELECT c.* , e.classroom, e.status AS enrollment_status
          FROM children c
@@ -22,7 +21,6 @@ exports.getDashboard = (req, res) => {
 
             const childIds = children.map(child => child.id);
 
-            // Today's attendance for these children
             db.query(
                 `SELECT * FROM attendance WHERE child_id IN (?) AND date = CURDATE()`,
                 [childIds],
@@ -32,7 +30,6 @@ exports.getDashboard = (req, res) => {
                         return res.status(500).json({ message: 'Failed to fetch attendance' });
                     }
 
-                    // Recent daily reports written by this caregiver
                     db.query(
                         `SELECT * FROM daily_reports WHERE caregiver_id = ? ORDER BY report_date DESC LIMIT 10`,
                         [caregiverId],
